@@ -1,6 +1,6 @@
 class Codelayers < Formula
   desc "Zero-knowledge code visualization CLI for Vision Pro"
-  homepage "https://codelayers.app"
+  homepage "https://codelayers.ai"
   version "0.1.0"
   license :cannot_represent
 

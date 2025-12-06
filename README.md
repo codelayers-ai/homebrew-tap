@@ -1,6 +1,6 @@
 # Homebrew Tap for CodeLayers CLI
 
-Official Homebrew tap for [CodeLayers](https://codelayers.app) - a zero-knowledge code visualization platform for Vision Pro.
+Official Homebrew tap for [CodeLayers](https://codelayers.ai) - a zero-knowledge code visualization platform for Vision Pro.
 
 ## Installation
 
@@ -45,7 +45,7 @@ codelayers watch /path/to/your/repo --agent claude
 
 ## Links
 
-- [CodeLayers Website](https://codelayers.app)
+- [CodeLayers Website](https://codelayers.ai)
 - [Vision Pro App](https://apps.apple.com/app/codelayers)
 - [Documentation](http://codelayers.ai/docs)
 
