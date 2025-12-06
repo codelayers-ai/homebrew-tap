@@ -41,13 +41,13 @@ codelayers watch /path/to/your/repo --agent claude
 ## Requirements
 
 - macOS 13.0 or later
-- Apple Silicon (M1/M2/M3) or Intel Mac
+- Apple Silicon - Intel Macs are not supported
 
 ## Links
 
 - [CodeLayers Website](https://codelayers.app)
 - [Vision Pro App](https://apps.apple.com/app/codelayers)
-- [Documentation](https://docs.codelayers.app)
+- [Documentation](http://codelayers.ai/docs)
 
 ## License
 

@@ -9,11 +9,9 @@ class Codelayers < Formula
       url "https://github.com/codelayers-ai/homebrew-codelayers/releases/download/v#{version}/codelayers-darwin-arm64.tar.gz"
       sha256 "PLACEHOLDER_SHA256_ARM64"
     end
-    on_intel do
-      url "https://github.com/codelayers-ai/homebrew-codelayers/releases/download/v#{version}/codelayers-darwin-x64.tar.gz"
-      sha256 "PLACEHOLDER_SHA256_X64"
-    end
   end
+
+  depends_on arch: :arm64
 
   depends_on :macos
   depends_on macos: :ventura
