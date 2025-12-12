@@ -59,15 +59,12 @@ jobs:
 
           ### Shell installer
           ```sh
-          curl --proto '=https' --tlsv1.2 -LsSf https://github.com/codelayers-ai/homebrew-tap/releases/download/$VERSION/codelayers-cli-installer.sh | sh
+          curl --proto '=https' --tlsv1.2 -LsSf https://github.com/codelayers-ai/homebrew-tap/releases/latest/download/codelayers-cli-installer.sh | sh
           ```
 
           ### Manual download
           Download the binary for your platform from the assets below.
           EOF
-
-          # Replace $VERSION in notes
-          sed -i "s/\$VERSION/$VERSION/g" notes.txt
 
           # Create release (or update if exists)
           gh release create "$VERSION" \
