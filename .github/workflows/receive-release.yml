@@ -1,0 +1,136 @@
+# Workflow to receive binaries from private codelayers repo and create public releases
+name: Receive Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g., v0.0.5)'
+        required: true
+        type: string
+      sha256:
+        description: 'SHA256 checksum of the binary'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  create-release:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download binary from private repo
+        env:
+          GH_TOKEN: ${{ secrets.CODELAYERS_RELEASE_TOKEN }}
+        run: |
+          # Download the binary from the private repo release
+          gh release download "${{ inputs.version }}" \
+            --repo codelayers-ai/codelayers \
+            --pattern "codelayers-cli-aarch64-apple-darwin.tar.xz" \
+            --dir ./artifacts
+
+          # Download the shell installer
+          gh release download "${{ inputs.version }}" \
+            --repo codelayers-ai/codelayers \
+            --pattern "codelayers-cli-installer.sh" \
+            --dir ./artifacts
+
+          # Verify checksum
+          cd artifacts
+          echo "${{ inputs.sha256 }}  codelayers-cli-aarch64-apple-darwin.tar.xz" | sha256sum -c -
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ inputs.version }}"
+
+          # Create release notes
+          cat > notes.txt << 'EOF'
+          ## Install codelayers CLI
+
+          ### Homebrew (recommended)
+          ```sh
+          brew install codelayers-ai/tap/codelayers
+          ```
+
+          ### Shell installer
+          ```sh
+          curl --proto '=https' --tlsv1.2 -LsSf https://github.com/codelayers-ai/homebrew-tap/releases/download/$VERSION/codelayers-cli-installer.sh | sh
+          ```
+
+          ### Manual download
+          Download the binary for your platform from the assets below.
+          EOF
+
+          # Replace $VERSION in notes
+          sed -i "s/\$VERSION/$VERSION/g" notes.txt
+
+          # Create release (or update if exists)
+          gh release create "$VERSION" \
+            --title "codelayers $VERSION" \
+            --notes-file notes.txt \
+            ./artifacts/* \
+            || gh release upload "$VERSION" ./artifacts/* --clobber
+
+      - name: Update Homebrew formula
+        run: |
+          VERSION="${{ inputs.version }}"
+          VERSION_NUM="${VERSION#v}"  # Remove 'v' prefix
+          SHA256="${{ inputs.sha256 }}"
+
+          # Update the formula
+          cat > Formula/codelayers.rb << EOF
+          class Codelayers < Formula
+            desc "Zero-knowledge code visualization CLI for Vision Pro"
+            homepage "https://codelayers.ai"
+            version "$VERSION_NUM"
+            if OS.mac? && Hardware::CPU.arm?
+              url "https://github.com/codelayers-ai/homebrew-tap/releases/download/$VERSION/codelayers-cli-aarch64-apple-darwin.tar.xz"
+              sha256 "$SHA256"
+            end
+            license "MIT"
+
+            BINARY_ALIASES = {
+              "aarch64-apple-darwin": {},
+            }.freeze
+
+            def target_triple
+              cpu = Hardware::CPU.arm? ? "aarch64" : "x86_64"
+              os = OS.mac? ? "apple-darwin" : "unknown-linux-gnu"
+
+              "#{cpu}-#{os}"
+            end
+
+            def install_binary_aliases!
+              BINARY_ALIASES[target_triple.to_sym].each do |source, dests|
+                dests.each do |dest|
+                  bin.install_symlink bin/source.to_s => dest
+                end
+              end
+            end
+
+            def install
+              bin.install "codelayers" if OS.mac? && Hardware::CPU.arm?
+
+              install_binary_aliases!
+
+              # Homebrew will automatically install these, so we don't need to do that
+              doc_files = Dir["README.*", "readme.*", "LICENSE", "LICENSE.*", "CHANGELOG.*"]
+              leftover_contents = Dir["*"] - doc_files
+
+              # Install any leftover files in pkgshare; these are probably config or
+              # sample files.
+              pkgshare.install(*leftover_contents) unless leftover_contents.empty?
+            end
+          end
+          EOF
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/codelayers.rb
+          git commit -m "codelayers $VERSION_NUM"
+          git push
