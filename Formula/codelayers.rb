@@ -1,10 +1,10 @@
 class Codelayers < Formula
   desc "Zero-knowledge code visualization CLI for Vision Pro"
   homepage "https://codelayers.ai"
-  version "1.0.4"
+  version "1.0.5"
   if OS.mac? && Hardware::CPU.arm?
-    url "https://github.com/codelayers-ai/homebrew-tap/releases/download/v1.0.4/codelayers-cli-aarch64-apple-darwin.tar.xz"
-    sha256 "6dcdace8c08bf5d3580f8c887d72be475fc25b6b47127b57260d825b4e6cd79a"
+    url "https://github.com/codelayers-ai/homebrew-tap/releases/download/v1.0.5/codelayers-cli-aarch64-apple-darwin.tar.xz"
+    sha256 "0ddf990416b86790e576bbb5054445039b6c551c6896b20bf68a4ac1a86277f3"
   end
   license "MIT"
 
