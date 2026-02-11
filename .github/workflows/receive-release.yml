@@ -8,8 +8,16 @@ on:
         description: 'Version tag (e.g., v0.0.5)'
         required: true
         type: string
-      sha256:
-        description: 'SHA256 checksum of the binary'
+      sha256_mac_arm:
+        description: 'SHA256 checksum of macOS ARM64 binary'
+        required: true
+        type: string
+      sha256_linux_x86:
+        description: 'SHA256 checksum of Linux x86_64 binary'
+        required: true
+        type: string
+      sha256_linux_arm:
+        description: 'SHA256 checksum of Linux ARM64 binary'
         required: true
         type: string
 
@@ -18,18 +26,22 @@ permissions:
 
 jobs:
   create-release:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download binary from private repo
+      - name: Download binaries from private repo
         env:
           GH_TOKEN: ${{ secrets.CODELAYERS_RELEASE_TOKEN }}
         run: |
-          # Download the binary from the private repo release
+          mkdir -p artifacts
+
+          # Download all platform binaries from the private repo release
           gh release download "${{ inputs.version }}" \
             --repo codelayers-ai/codelayers \
             --pattern "codelayers-cli-aarch64-apple-darwin.tar.xz" \
+            --pattern "codelayers-cli-x86_64-unknown-linux-gnu.tar.xz" \
+            --pattern "codelayers-cli-aarch64-unknown-linux-gnu.tar.xz" \
             --dir ./artifacts
 
           # Download the shell installer
@@ -38,9 +50,11 @@ jobs:
             --pattern "codelayers-cli-installer.sh" \
             --dir ./artifacts
 
-          # Verify checksum
+          # Verify checksums
           cd artifacts
-          echo "${{ inputs.sha256 }}  codelayers-cli-aarch64-apple-darwin.tar.xz" | sha256sum -c -
+          echo "${{ inputs.sha256_mac_arm }}  codelayers-cli-aarch64-apple-darwin.tar.xz" | sha256sum -c -
+          echo "${{ inputs.sha256_linux_x86 }}  codelayers-cli-x86_64-unknown-linux-gnu.tar.xz" | sha256sum -c -
+          echo "${{ inputs.sha256_linux_arm }}  codelayers-cli-aarch64-unknown-linux-gnu.tar.xz" | sha256sum -c -
 
       - name: Create GitHub Release
         env:
@@ -64,6 +78,12 @@ jobs:
 
           ### Manual download
           Download the binary for your platform from the assets below.
+
+          | Platform | Binary |
+          |----------|--------|
+          | macOS ARM64 (Apple Silicon) | `codelayers-cli-aarch64-apple-darwin.tar.xz` |
+          | Linux x86_64 | `codelayers-cli-x86_64-unknown-linux-gnu.tar.xz` |
+          | Linux ARM64 | `codelayers-cli-aarch64-unknown-linux-gnu.tar.xz` |
           EOF
 
           # Create release (or update if exists)
@@ -77,51 +97,30 @@ jobs:
         run: |
           VERSION="${{ inputs.version }}"
           VERSION_NUM="${VERSION#v}"  # Remove 'v' prefix
-          SHA256="${{ inputs.sha256 }}"
+          SHA256_MAC_ARM="${{ inputs.sha256_mac_arm }}"
+          SHA256_LINUX_X86="${{ inputs.sha256_linux_x86 }}"
+          SHA256_LINUX_ARM="${{ inputs.sha256_linux_arm }}"
 
-          # Update the formula
           cat > Formula/codelayers.rb << EOF
           class Codelayers < Formula
             desc "Zero-knowledge code visualization CLI for Vision Pro"
             homepage "https://codelayers.ai"
             version "$VERSION_NUM"
-            if OS.mac? && Hardware::CPU.arm?
-              url "https://github.com/codelayers-ai/homebrew-tap/releases/download/$VERSION/codelayers-cli-aarch64-apple-darwin.tar.xz"
-              sha256 "$SHA256"
-            end
             license "MIT"
 
-            BINARY_ALIASES = {
-              "aarch64-apple-darwin": {},
-            }.freeze
-
-            def target_triple
-              cpu = Hardware::CPU.arm? ? "aarch64" : "x86_64"
-              os = OS.mac? ? "apple-darwin" : "unknown-linux-gnu"
-
-              "#{cpu}-#{os}"
-            end
-
-            def install_binary_aliases!
-              BINARY_ALIASES[target_triple.to_sym].each do |source, dests|
-                dests.each do |dest|
-                  bin.install_symlink bin/source.to_s => dest
-                end
-              end
+            if OS.mac? && Hardware::CPU.arm?
+              url "https://github.com/codelayers-ai/homebrew-tap/releases/download/$VERSION/codelayers-cli-aarch64-apple-darwin.tar.xz"
+              sha256 "$SHA256_MAC_ARM"
+            elsif OS.linux? && Hardware::CPU.intel?
+              url "https://github.com/codelayers-ai/homebrew-tap/releases/download/$VERSION/codelayers-cli-x86_64-unknown-linux-gnu.tar.xz"
+              sha256 "$SHA256_LINUX_X86"
+            elsif OS.linux? && Hardware::CPU.arm?
+              url "https://github.com/codelayers-ai/homebrew-tap/releases/download/$VERSION/codelayers-cli-aarch64-unknown-linux-gnu.tar.xz"
+              sha256 "$SHA256_LINUX_ARM"
             end
 
             def install
-              bin.install "codelayers" if OS.mac? && Hardware::CPU.arm?
-
-              install_binary_aliases!
-
-              # Homebrew will automatically install these, so we don't need to do that
-              doc_files = Dir["README.*", "readme.*", "LICENSE", "LICENSE.*", "CHANGELOG.*"]
-              leftover_contents = Dir["*"] - doc_files
-
-              # Install any leftover files in pkgshare; these are probably config or
-              # sample files.
-              pkgshare.install(*leftover_contents) unless leftover_contents.empty?
+              bin.install "codelayers"
             end
           end
           EOF
@@ -131,3 +130,12 @@ jobs:
           git add Formula/codelayers.rb
           git commit -m "codelayers $VERSION_NUM"
           git push
+
+      - name: Trigger Docker image build
+        env:
+          GH_TOKEN: ${{ secrets.CODELAYERS_RELEASE_TOKEN }}
+        run: |
+          gh workflow run docker.yml \
+            --repo codelayers-ai/codelayers-action \
+            --field version="${{ inputs.version }}"
+          echo "Triggered Docker image build for ${{ inputs.version }}"
