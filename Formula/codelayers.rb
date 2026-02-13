@@ -1,18 +1,18 @@
 class Codelayers < Formula
   desc "Zero-knowledge code visualization CLI for Vision Pro"
   homepage "https://codelayers.ai"
-  version "1.3.6"
+  version "1.3.7"
   license "MIT"
 
   if OS.mac? && Hardware::CPU.arm?
-    url "https://github.com/codelayers-ai/homebrew-tap/releases/download/v1.3.6/codelayers-cli-aarch64-apple-darwin.tar.xz"
-    sha256 "cdb1f2f06cb0f9c4c47a80fb768f33d804d7a35c1ab027e27f9aa343dd3c7c02"
+    url "https://github.com/codelayers-ai/homebrew-tap/releases/download/v1.3.7/codelayers-cli-aarch64-apple-darwin.tar.xz"
+    sha256 "00d08660247b4cd464f1a3932a4fc06bf82a48966fea54aafa7ac823b11789dc"
   elsif OS.linux? && Hardware::CPU.intel?
-    url "https://github.com/codelayers-ai/homebrew-tap/releases/download/v1.3.6/codelayers-cli-x86_64-unknown-linux-gnu.tar.xz"
-    sha256 "5a8e8be6bb994b0d0f6b4c228fc7ef2896fad4804aae9a13477f0c80bf95ab88"
+    url "https://github.com/codelayers-ai/homebrew-tap/releases/download/v1.3.7/codelayers-cli-x86_64-unknown-linux-gnu.tar.xz"
+    sha256 "7d4cfa7299f59aea41d948e0fdfa884097d4bca091ba493644538a99b68771c3"
   elsif OS.linux? && Hardware::CPU.arm?
-    url "https://github.com/codelayers-ai/homebrew-tap/releases/download/v1.3.6/codelayers-cli-aarch64-unknown-linux-gnu.tar.xz"
-    sha256 "4e5c8ef9bc5f8572e5f5b452ff22835de9ba2b233f5e9740a70eb1824b8e2b91"
+    url "https://github.com/codelayers-ai/homebrew-tap/releases/download/v1.3.7/codelayers-cli-aarch64-unknown-linux-gnu.tar.xz"
+    sha256 "556f85e45823bfdfa5a3c2bfa037f44291fb4655d1b34535f5dac9645253389d"
   end
 
   def install
